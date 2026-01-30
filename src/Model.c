@@ -17,6 +17,7 @@ struct model
     float *hiddenState; // Flattened array of hidden states for each GRU layer
 };
 
+static size_t totalWeights(int numLayers, int hiddenSize);
 static uint32_t xorshift();
 static void xavierInitialization(float *weights, int rows, int cols);
 static float randomFloat(float bound);
@@ -32,15 +33,8 @@ Model ModelNew(int numLayers, int hiddenSize)
     m->numLayers = numLayers;
     m->hiddenSize = hiddenSize;
 
-    // Calculate the total number of weights/biases in the model
-    size_t embeddingSize = VOCABULARY_SIZE * hiddenSize;                // W_e
-    size_t gruLayerSize = hiddenSize * hiddenSize * NUM_WEIGHT_MATRICES // W_z, W_r, W_h, U_z, U_r, U_h
-                                     + hiddenSize * NUM_BIAS_VECTORS;   // b_z, b_r, b_h
-    size_t outputSize = hiddenSize * VOCABULARY_SIZE + VOCABULARY_SIZE; // W_o, b_o
-    size_t totalWeights = embeddingSize + gruLayerSize * numLayers + outputSize;
-
-    // Allocate memory for weights/biases and initialzie to 0
-    m->weights = calloc(totalWeights, sizeof(float));
+    // Allocate memory for weights/biases and initialize to 0
+    m->weights = calloc(totalWeights(numLayers, hiddenSize), sizeof(float));
     if (m->weights == NULL)
     {
         free(m);
@@ -53,7 +47,7 @@ Model ModelNew(int numLayers, int hiddenSize)
 
     // W_e
     xavierInitialization(m->weights + offset, VOCABULARY_SIZE, hiddenSize);
-    offset += embeddingSize;
+    offset += VOCABULARY_SIZE * hiddenSize;
 
     for (int l = 0; l < numLayers; l++)
     {
@@ -109,7 +103,7 @@ Model ModelRead(char *path)
     }
     fseek(f, 0, SEEK_SET);
 
-    // Allocate model struct
+    // Allocate model
     Model m = malloc(sizeof(struct model));
     if (m == NULL)
     {
@@ -122,15 +116,9 @@ Model ModelRead(char *path)
     fread(&m->numLayers, sizeof(int), 1, f);
     fread(&m->hiddenSize, sizeof(int), 1, f);
 
-    // Calculate total number of weights/biases
-    int h = m->hiddenSize;
-    int n = m->numLayers;
-    size_t totalWeights = VOCABULARY_SIZE * h
-                        + (h * h * NUM_WEIGHT_MATRICES + h * NUM_BIAS_VECTORS) * n
-                        + h * VOCABULARY_SIZE + VOCABULARY_SIZE;
-
     // Allocate and read weights from file
-    m->weights = malloc(totalWeights * sizeof(float));
+    size_t numWeights = totalWeights(m->numLayers, m->hiddenSize);
+    m->weights = malloc(numWeights * sizeof(float));
     if (m->weights == NULL)
     {
         free(m);
@@ -138,10 +126,10 @@ Model ModelRead(char *path)
         fprintf(stderr, "Insufficient memory!\n");
         exit(EXIT_FAILURE);
     }
-    fread(m->weights, sizeof(float), totalWeights, f);
+    fread(m->weights, sizeof(float), numWeights, f);
 
     // Allocate hidden state and initialize to 0
-    m->hiddenState = calloc(n * h, sizeof(float));
+    m->hiddenState = calloc(m->numLayers * m->hiddenSize, sizeof(float));
     if (m->hiddenState == NULL)
     {
         free(m->weights);
@@ -157,7 +145,19 @@ Model ModelRead(char *path)
 
 void ModelWrite(Model m, char *path)
 {
-    return;
+    FILE *f = fopen(path, "wb");
+    if (f == NULL)
+    {
+        fprintf(stderr, "Could not open file '%s'\n", path);
+        exit(EXIT_FAILURE);
+    }
+
+    // Write model dimensions and weights
+    fwrite(&m->numLayers, sizeof(int), 1, f);
+    fwrite(&m->hiddenSize, sizeof(int), 1, f);
+    fwrite(m->weights, sizeof(float), totalWeights(m->numLayers, m->hiddenSize), f);
+
+    fclose(f);
 }
 
 void ModelReset(Model m)
@@ -175,6 +175,17 @@ Token ModelSample(Model m, Logits output)
     return 0;
 }
 
+// Calculate the total number of weights/biases in the model
+static size_t totalWeights(int numLayers, int hiddenSize)
+{
+    size_t embeddingSize = VOCABULARY_SIZE * hiddenSize;                // W_e
+    size_t gruLayerSize = hiddenSize * hiddenSize * NUM_WEIGHT_MATRICES // W_z, W_r, W_h, U_z, U_r, U_h
+                                     + hiddenSize * NUM_BIAS_VECTORS;   // b_z, b_r, b_h
+    size_t outputSize = hiddenSize * VOCABULARY_SIZE + VOCABULARY_SIZE; // W_o, b_o
+    return embeddingSize + gruLayerSize * numLayers + outputSize;
+}
+
+// Xorshift algorithm
 static uint32_t xorshift()
 {
   static uint32_t state = 0;
