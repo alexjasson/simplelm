@@ -48,7 +48,7 @@ Model ModelNew(int numLayers, int hiddenSize)
         exit(EXIT_FAILURE);
     }
 
-    // Initialize weighs with Xavier initialization, leave biases as 0
+    // Initialize weights with Xavier initialization, leave biases as 0
     size_t offset = 0;
 
     // W_e
@@ -92,7 +92,67 @@ void ModelFree(Model m)
 
 Model ModelRead(char *path)
 {
-    return ModelNew(0, 0);
+    FILE *f = fopen(path, "rb");
+    if (f == NULL)
+    {
+        fprintf(stderr, "Could not open file '%s'\n", path);
+        exit(EXIT_FAILURE);
+    }
+
+    // Check file size
+    fseek(f, 0, SEEK_END);
+    long fileSize = ftell(f);
+    if (fileSize < 1048)
+    {
+        fclose(f);
+        return ModelNew(0, 0);
+    }
+    fseek(f, 0, SEEK_SET);
+
+    // Allocate model struct
+    Model m = malloc(sizeof(struct model));
+    if (m == NULL)
+    {
+        fclose(f);
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read model dimensions
+    fread(&m->numLayers, sizeof(int), 1, f);
+    fread(&m->hiddenSize, sizeof(int), 1, f);
+
+    // Calculate total number of weights/biases
+    int h = m->hiddenSize;
+    int n = m->numLayers;
+    size_t totalWeights = VOCABULARY_SIZE * h
+                        + (h * h * NUM_WEIGHT_MATRICES + h * NUM_BIAS_VECTORS) * n
+                        + h * VOCABULARY_SIZE + VOCABULARY_SIZE;
+
+    // Allocate and read weights from file
+    m->weights = malloc(totalWeights * sizeof(float));
+    if (m->weights == NULL)
+    {
+        free(m);
+        fclose(f);
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+    fread(m->weights, sizeof(float), totalWeights, f);
+
+    // Allocate hidden state and initialize to 0
+    m->hiddenState = calloc(n * h, sizeof(float));
+    if (m->hiddenState == NULL)
+    {
+        free(m->weights);
+        free(m);
+        fclose(f);
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(f);
+    return m;
 }
 
 void ModelWrite(Model m, char *path)
