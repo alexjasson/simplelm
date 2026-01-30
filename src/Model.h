@@ -33,7 +33,7 @@ Model ModelRead(char *path);
 void ModelWrite(Model m, char *path);
 
 /*
- * Resets the models memory
+ * Resets the models memory (hidden state)
  */
 void ModelReset(Model m);
 
