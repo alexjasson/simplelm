@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <time.h>
 #include "Model.h"
@@ -162,7 +163,7 @@ void ModelWrite(Model m, char *path)
 
 void ModelReset(Model m)
 {
-    return;
+    memset(m->hiddenState, 0, m->numLayers * m->hiddenSize * sizeof(float));
 }
 
 void ModelForward(Model m, Token input, Logits output)
