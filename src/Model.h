@@ -2,16 +2,9 @@
 #define MODEL_H
 
 #include <stdint.h>
+#include "Matrix.h"
 
 #define VOCABULARY_SIZE 256 // All ASCII characters
-
-typedef float Entry;
-typedef struct {
-    size_t rows;
-    size_t cols;
-    Entry *entries;
-} Matrix;
-typedef float (*MatrixFunction)(Entry);
 
 typedef struct model *Model;
 typedef uint8_t Token; 	    // Input of the model

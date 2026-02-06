@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
-#include <time.h>
 #include "Model.h"
 
 /*
@@ -57,20 +55,6 @@ struct model
     Variables v;    // Allocated memory for calculations
 };
 
-// Matrix API functions and helpers
-static void matrixApply(Matrix A, MatrixFunction f);
-static void matrixAdd(Matrix out, Matrix A, Matrix B);
-static void matrixSubtract(Matrix out, Matrix A, Matrix B);
-static void matrixHadamard(Matrix out, Matrix A, Matrix B);
-static void matrixMultiply(Matrix out, Matrix A, Matrix B);
-static Matrix matrixNew(size_t rows, size_t cols, Entry *entries);
-static void matrixXavier(Matrix A);
-static void matrixZero(Matrix A);
-static Matrix matrixView(Matrix A, size_t row);
-static uint32_t xorshift();
-static Entry randomEntry(Entry bound);
-
-// Model API helpers
 static Entry sigmoid(Entry x);
 static Entry rationalTanh(Entry x);
 
@@ -247,6 +231,7 @@ void ModelForward(Model m, Token input, Matrix output)
 
 Token ModelSample(Model m, Matrix output)
 {
+    // TODO
     return 0;
 }
 
@@ -263,121 +248,3 @@ static Entry rationalTanh(Entry x) {
     Entry x2 = x * x;
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
-
-// Xorshift algorithm
-static uint32_t xorshift()
-{
-  static uint32_t state = 0;
-  static int seeded = 0;
-
-  // Seed only once
-  if (!seeded)
-  {
-    state = (uint32_t)time(NULL);
-    seeded = 1;
-  }
-
-  uint32_t x = state;
-  x ^= x << 13;
-  x ^= x >> 17;
-  x ^= x << 5;
-
-  state = x;
-  return x;
-}
-
-// Returns a random entry in [-bound, +bound]
-static inline Entry randomEntry(Entry bound)
-{
-    return ((xorshift() >> 8) * (2.0f / 16777216.0f) - 1.0f) * bound;
-}
-
-// Xavier initialize a matrix
-static void matrixXavier(Matrix A) {
-    size_t size = A.rows * A.cols;
-    Entry bound = sqrtf(6.0f / (A.rows + A.cols));
-    for (size_t i = 0; i < size; i++) {
-        A.entries[i] = randomEntry(bound);
-    }
-}
-
-// // Creates a matrix from existing data
-static Matrix matrixNew(size_t rows, size_t cols, Entry *entries)
-{
-    Matrix m;
-    m.rows = rows;
-    m.cols = cols;
-    m.entries = entries;
-    return m;
-}
-
-// out = A * B, assumes all parameters given are correct
-static void matrixMultiply(Matrix out, Matrix A, Matrix B)
-{
-    for (size_t i = 0; i < A.rows; i++)
-    {
-        Entry *A_i = A.entries + i * A.cols;
-        Entry *C_i = out.entries + i * B.cols;
-
-        for (size_t k = 0; k < B.cols; k++)
-            C_i[k] = 0.0f;
-
-        for (size_t j = 0; j < A.cols; j++)
-        {
-            Entry a = A_i[j];
-            Entry *B_j = B.entries + j * B.cols;
-            for (size_t k = 0; k < B.cols; k++)
-                C_i[k] += a * B_j[k];
-        }
-    }
-}
-
-// out = A + B, assumes all parameters given are correct
-static void matrixAdd(Matrix out, Matrix A, Matrix B)
-{
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] + B.entries[i];
-}
-
-// out = A - B, assumes all parameters given are correct
-static void matrixSubtract(Matrix out, Matrix A, Matrix B)
-{
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] - B.entries[i];
-}
-
-// out = A ⊙ B, assumes all parameters given are correct
-static void matrixHadamard(Matrix out, Matrix A, Matrix B)
-{
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] * B.entries[i];
-}
-
-// Applies a specific single variable function to each element in the matrix
-static void matrixApply(Matrix A, MatrixFunction f)
-{
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        A.entries[i] = f(A.entries[i]);
-}
-
-// Sets all elements in the matrix to zero
-static void matrixZero(Matrix A)
-{
-    memset(A.entries, 0, A.rows * A.cols * sizeof(Entry));
-}
-
-// Returns the transpose of the given row in matrix A, note that it
-// shares memory with matrix A. Use with caution.
-static inline Matrix matrixView(Matrix A, size_t row)
-{
-    Matrix m;
-    m.rows = A.cols;
-    m.cols = 1;
-    m.entries = A.entries + row * A.cols;
-    return m;
-}
-
