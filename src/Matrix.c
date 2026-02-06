@@ -1,9 +1,29 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "Matrix.h"
 #include "utility.h"
 
-Matrix MatrixNew(size_t rows, size_t cols, Entry *entries)
+Matrix MatrixNew(size_t rows, size_t cols)
+{
+    Matrix m;
+    m.rows = rows;
+    m.cols = cols;
+    m.entries = calloc(rows * cols, sizeof(Entry));
+    if (!m.entries) {
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+    return m;
+}
+
+void MatrixFree(Matrix A)
+{
+    free(A.entries);
+}
+
+Matrix MatrixView(size_t rows, size_t cols, Entry *entries)
 {
     Matrix m;
     m.rows = rows;
@@ -73,7 +93,7 @@ void MatrixZero(Matrix A)
     memset(A.entries, 0, A.rows * A.cols * sizeof(Entry));
 }
 
-Matrix MatrixView(Matrix A, size_t row)
+Matrix MatrixSlice(Matrix A, size_t row)
 {
     Matrix m;
     m.rows = A.cols;

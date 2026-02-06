@@ -10,9 +10,19 @@ typedef struct {
 typedef Entry (*MatrixFunction)(Entry);
 
 /*
- * Creates a matrix, requires already allocated memory for entries
+ * Allocates a new matrix on the heap with all entries as 0
  */
-Matrix MatrixNew(size_t rows, size_t cols, Entry *entries);
+Matrix MatrixNew(size_t rows, size_t cols);
+
+/*
+ * Frees a matrix from memory
+ */
+void MatrixFree(Matrix A);
+
+/*
+ * Creates a matrix view over existing memory.
+ */
+Matrix MatrixView(size_t rows, size_t cols, Entry *entries);
 
 /*
  * out = A + B, assumes all parameters given are correct
@@ -52,7 +62,7 @@ void MatrixZero(Matrix A);
 /* Returns the transpose of the given row in matrix A, note that it
  * shares memory with matrix A. Use with caution.
  */
-Matrix MatrixView(Matrix A, size_t row);
+Matrix MatrixSlice(Matrix A, size_t row);
 
 /*
  * Returns the entry at the given row and column.

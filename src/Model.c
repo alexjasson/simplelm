@@ -78,19 +78,19 @@ Model ModelNew(int hiddenSize, int numLayers)
 
     // Assign memory addresses to parameters
     addr = m->p.entries;
-    m->p.e.W = MatrixNew(V, E, addr); addr += V * E;
+    m->p.e.W = MatrixView(V, E, addr); addr += V * E;
     for (size_t i = 0; i < N; i++)
     {
         HiddenLayer *hl = &m->p.h[i];
-        hl->W_f = MatrixNew(H, H, addr); addr += H * H;
-        hl->W_h = MatrixNew(H, H, addr); addr += H * H;
-        hl->U_f = MatrixNew(H, H, addr); addr += H * H;
-        hl->U_h = MatrixNew(H, H, addr); addr += H * H;
-        hl->b_f = MatrixNew(H, 1, addr); addr += H;
-        hl->b_h = MatrixNew(H, 1, addr); addr += H;
+        hl->W_f = MatrixView(H, H, addr); addr += H * H;
+        hl->W_h = MatrixView(H, H, addr); addr += H * H;
+        hl->U_f = MatrixView(H, H, addr); addr += H * H;
+        hl->U_h = MatrixView(H, H, addr); addr += H * H;
+        hl->b_f = MatrixView(H, 1, addr); addr += H;
+        hl->b_h = MatrixView(H, 1, addr); addr += H;
     }
-    m->p.o.W = MatrixNew(V, H, addr); addr += V * H;
-    m->p.o.b = MatrixNew(V, 1, addr);
+    m->p.o.W = MatrixView(V, H, addr); addr += V * H;
+    m->p.o.b = MatrixView(V, 1, addr);
 
     // Initialize parameters - Xavier for weight matrices, leave biases as 0
     MatrixXavier(m->p.e.W);
@@ -112,34 +112,34 @@ Model ModelNew(int hiddenSize, int numLayers)
     // Assign memory addresses to gradients
     addr = m->g.entries;
 
-    m->g.e.W = MatrixNew(V, E, addr); addr += V * E;
+    m->g.e.W = MatrixView(V, E, addr); addr += V * E;
     for (size_t i = 0; i < N; i++)
     {
         HiddenLayer *hl = &m->g.h[i];
-        hl->W_f = MatrixNew(H, H, addr); addr += H * H;
-        hl->W_h = MatrixNew(H, H, addr); addr += H * H;
-        hl->U_f = MatrixNew(H, H, addr); addr += H * H;
-        hl->U_h = MatrixNew(H, H, addr); addr += H * H;
-        hl->b_f = MatrixNew(H, 1, addr); addr += H;
-        hl->b_h = MatrixNew(H, 1, addr); addr += H;
+        hl->W_f = MatrixView(H, H, addr); addr += H * H;
+        hl->W_h = MatrixView(H, H, addr); addr += H * H;
+        hl->U_f = MatrixView(H, H, addr); addr += H * H;
+        hl->U_h = MatrixView(H, H, addr); addr += H * H;
+        hl->b_f = MatrixView(H, 1, addr); addr += H;
+        hl->b_h = MatrixView(H, 1, addr); addr += H;
     }
-    m->g.o.W = MatrixNew(V, H, addr); addr += V * H;
-    m->g.o.b = MatrixNew(V, 1, addr);
+    m->g.o.W = MatrixView(V, H, addr); addr += V * H;
+    m->g.o.b = MatrixView(V, 1, addr);
 
     // Allocate hidden states and assign memory addresses
     m->hs.h = calloc(N, sizeof(Matrix));
     m->hs.entries = calloc(N * H, sizeof(Entry));
     if ((!m->hs.entries) || (!m->hs.h)) goto error;
     for (size_t i = 0; i < N; i++)
-        m->hs.h[i] = MatrixNew(H, 1, m->hs.entries + i * H);
+        m->hs.h[i] = MatrixView(H, 1, m->hs.entries + i * H);
 
     // Allocate variables and assign memory addresses
     m->v.entries = calloc(3 * H, sizeof(Entry));
     if (!m->v.entries) goto error;
     addr = m->v.entries;
-    m->v.f     = MatrixNew(H, 1, addr); addr += H;
-    m->v.h_hat = MatrixNew(H, 1, addr); addr += H;
-    m->v.temp  = MatrixNew(H, 1, addr);
+    m->v.f     = MatrixView(H, 1, addr); addr += H;
+    m->v.h_hat = MatrixView(H, 1, addr); addr += H;
+    m->v.temp  = MatrixView(H, 1, addr);
 
     return m;
 
@@ -191,7 +191,7 @@ void ModelForward(Model m, Token input, Matrix output)
     Variables *v = &m->v;
 
     // Embedding layer: x = W_e[input, :]^T
-    Matrix x = MatrixView(m->p.e.W, (size_t)input);
+    Matrix x = MatrixSlice(m->p.e.W, (size_t)input);
 
     // Iterate over MGU layers
     for (size_t l = 0; l < m->N; l++)
