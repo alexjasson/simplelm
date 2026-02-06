@@ -176,8 +176,18 @@ Model ModelRead(char *path)
 
 void ModelWrite(Model m, char *path)
 {
-    // TODO
-    return;
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        fprintf(stderr, "Failed to open file: %s\n", path);
+        return;
+    }
+
+    fwrite(&m->V, sizeof(size_t), 1, f);
+    fwrite(&m->E, sizeof(size_t), 1, f);
+    fwrite(&m->H, sizeof(size_t), 1, f);
+    fwrite(&m->N, sizeof(size_t), 1, f);
+    fwrite(m->p.entries, sizeof(Entry), ModelParameters(m), f);
+    fclose(f);
 }
 
 void ModelReset(Model m)

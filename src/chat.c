@@ -36,6 +36,7 @@ int main(int argc, char **argv)
         Token t;
         while ((t = ModelSample(m, output, temperature)) != '\n') {
             putchar(t);
+            fflush(stdout);
             ModelForward(m, t, output);
         }
         printf("\n");
