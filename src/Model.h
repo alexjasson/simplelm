@@ -51,6 +51,6 @@ void ModelForward(Model m, Token input, Matrix output);
 /*
  * Given the output of the model, choose a token and return it.
  */
-Token ModelSample(Model m, Matrix output);
+Token ModelSample(Model m, Matrix output, float temperature);
 
 #endif

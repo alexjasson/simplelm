@@ -1,13 +1,9 @@
-#include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include <time.h>
 #include "Matrix.h"
+#include "utility.h"
 
-static uint32_t xorshift();
-static Entry randomEntry(Entry bound);
-
-Matrix matrixNew(size_t rows, size_t cols, Entry *entries)
+Matrix MatrixNew(size_t rows, size_t cols, Entry *entries)
 {
     Matrix m;
     m.rows = rows;
@@ -16,35 +12,35 @@ Matrix matrixNew(size_t rows, size_t cols, Entry *entries)
     return m;
 }
 
-void matrixApply(Matrix A, MatrixFunction f)
+void MatrixApply(Matrix A, MatrixFunction f)
 {
     size_t n = A.rows * A.cols;
     for (size_t i = 0; i < n; i++)
         A.entries[i] = f(A.entries[i]);
 }
 
-void matrixAdd(Matrix out, Matrix A, Matrix B)
+void MatrixAdd(Matrix out, Matrix A, Matrix B)
 {
     size_t n = A.rows * A.cols;
     for (size_t i = 0; i < n; i++)
         out.entries[i] = A.entries[i] + B.entries[i];
 }
 
-void matrixSubtract(Matrix out, Matrix A, Matrix B)
+void MatrixSubtract(Matrix out, Matrix A, Matrix B)
 {
     size_t n = A.rows * A.cols;
     for (size_t i = 0; i < n; i++)
         out.entries[i] = A.entries[i] - B.entries[i];
 }
 
-void matrixHadamard(Matrix out, Matrix A, Matrix B)
+void MatrixHadamard(Matrix out, Matrix A, Matrix B)
 {
     size_t n = A.rows * A.cols;
     for (size_t i = 0; i < n; i++)
         out.entries[i] = A.entries[i] * B.entries[i];
 }
 
-void matrixMultiply(Matrix out, Matrix A, Matrix B)
+void MatrixMultiply(Matrix out, Matrix A, Matrix B)
 {
     for (size_t i = 0; i < A.rows; i++)
     {
@@ -64,20 +60,20 @@ void matrixMultiply(Matrix out, Matrix A, Matrix B)
     }
 }
 
-void matrixXavier(Matrix A)
+void MatrixXavier(Matrix A)
 {
     size_t size = A.rows * A.cols;
     Entry bound = sqrtf(6.0f / (A.rows + A.cols));
     for (size_t i = 0; i < size; i++)
-        A.entries[i] = randomEntry(bound);
+        A.entries[i] = (Entry)randomFloat(-bound, bound);
 }
 
-void matrixZero(Matrix A)
+void MatrixZero(Matrix A)
 {
     memset(A.entries, 0, A.rows * A.cols * sizeof(Entry));
 }
 
-Matrix matrixView(Matrix A, size_t row)
+Matrix MatrixView(Matrix A, size_t row)
 {
     Matrix m;
     m.rows = A.cols;
@@ -86,29 +82,12 @@ Matrix matrixView(Matrix A, size_t row)
     return m;
 }
 
-// Xorshift algorithm
-static uint32_t xorshift()
+Entry MatrixGet(Matrix A, size_t row, size_t col)
 {
-    static uint32_t state = 0;
-    static int seeded = 0;
-
-    if (!seeded)
-    {
-        state = (uint32_t)time(NULL);
-        seeded = 1;
-    }
-
-    uint32_t x = state;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-
-    state = x;
-    return x;
+    return A.entries[row * A.cols + col];
 }
 
-// Returns a random entry in [-bound, +bound]
-static Entry randomEntry(Entry bound)
+void MatrixSet(Matrix A, size_t row, size_t col, Entry value)
 {
-    return ((xorshift() >> 8) * (2.0f / 16777216.0f) - 1.0f) * bound;
+    A.entries[row * A.cols + col] = value;
 }

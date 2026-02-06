@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Model.h"
+#include "utility.h"
 
 /*
  * We're using a minimal gated unit (MGU) with an embedding layer and
@@ -77,31 +78,31 @@ Model ModelNew(int hiddenSize, int numLayers)
 
     // Assign memory addresses to parameters
     addr = m->p.entries;
-    m->p.e.W = matrixNew(V, E, addr); addr += V * E;
+    m->p.e.W = MatrixNew(V, E, addr); addr += V * E;
     for (size_t i = 0; i < N; i++)
     {
         HiddenLayer *hl = &m->p.h[i];
-        hl->W_f = matrixNew(H, H, addr); addr += H * H;
-        hl->W_h = matrixNew(H, H, addr); addr += H * H;
-        hl->U_f = matrixNew(H, H, addr); addr += H * H;
-        hl->U_h = matrixNew(H, H, addr); addr += H * H;
-        hl->b_f = matrixNew(H, 1, addr); addr += H;
-        hl->b_h = matrixNew(H, 1, addr); addr += H;
+        hl->W_f = MatrixNew(H, H, addr); addr += H * H;
+        hl->W_h = MatrixNew(H, H, addr); addr += H * H;
+        hl->U_f = MatrixNew(H, H, addr); addr += H * H;
+        hl->U_h = MatrixNew(H, H, addr); addr += H * H;
+        hl->b_f = MatrixNew(H, 1, addr); addr += H;
+        hl->b_h = MatrixNew(H, 1, addr); addr += H;
     }
-    m->p.o.W = matrixNew(V, H, addr); addr += V * H;
-    m->p.o.b = matrixNew(V, 1, addr);
+    m->p.o.W = MatrixNew(V, H, addr); addr += V * H;
+    m->p.o.b = MatrixNew(V, 1, addr);
 
     // Initialize parameters - Xavier for weight matrices, leave biases as 0
-    matrixXavier(m->p.e.W);
+    MatrixXavier(m->p.e.W);
     for (size_t i = 0; i < N; i++)
     {
         HiddenLayer *hl = &m->p.h[i];
-        matrixXavier(hl->W_f);
-        matrixXavier(hl->W_h);
-        matrixXavier(hl->U_f);
-        matrixXavier(hl->U_h);
+        MatrixXavier(hl->W_f);
+        MatrixXavier(hl->W_h);
+        MatrixXavier(hl->U_f);
+        MatrixXavier(hl->U_h);
     }
-    matrixXavier(m->p.o.W);
+    MatrixXavier(m->p.o.W);
 
     // Allocate gradients
     m->g.h = calloc(N, sizeof(HiddenLayer));
@@ -111,34 +112,34 @@ Model ModelNew(int hiddenSize, int numLayers)
     // Assign memory addresses to gradients
     addr = m->g.entries;
 
-    m->g.e.W = matrixNew(V, E, addr); addr += V * E;
+    m->g.e.W = MatrixNew(V, E, addr); addr += V * E;
     for (size_t i = 0; i < N; i++)
     {
         HiddenLayer *hl = &m->g.h[i];
-        hl->W_f = matrixNew(H, H, addr); addr += H * H;
-        hl->W_h = matrixNew(H, H, addr); addr += H * H;
-        hl->U_f = matrixNew(H, H, addr); addr += H * H;
-        hl->U_h = matrixNew(H, H, addr); addr += H * H;
-        hl->b_f = matrixNew(H, 1, addr); addr += H;
-        hl->b_h = matrixNew(H, 1, addr); addr += H;
+        hl->W_f = MatrixNew(H, H, addr); addr += H * H;
+        hl->W_h = MatrixNew(H, H, addr); addr += H * H;
+        hl->U_f = MatrixNew(H, H, addr); addr += H * H;
+        hl->U_h = MatrixNew(H, H, addr); addr += H * H;
+        hl->b_f = MatrixNew(H, 1, addr); addr += H;
+        hl->b_h = MatrixNew(H, 1, addr); addr += H;
     }
-    m->g.o.W = matrixNew(V, H, addr); addr += V * H;
-    m->g.o.b = matrixNew(V, 1, addr);
+    m->g.o.W = MatrixNew(V, H, addr); addr += V * H;
+    m->g.o.b = MatrixNew(V, 1, addr);
 
     // Allocate hidden states and assign memory addresses
     m->hs.h = calloc(N, sizeof(Matrix));
     m->hs.entries = calloc(N * H, sizeof(Entry));
     if ((!m->hs.entries) || (!m->hs.h)) goto error;
     for (size_t i = 0; i < N; i++)
-        m->hs.h[i] = matrixNew(H, 1, m->hs.entries + i * H);
+        m->hs.h[i] = MatrixNew(H, 1, m->hs.entries + i * H);
 
     // Allocate variables and assign memory addresses
     m->v.entries = calloc(3 * H, sizeof(Entry));
     if (!m->v.entries) goto error;
     addr = m->v.entries;
-    m->v.f     = matrixNew(H, 1, addr); addr += H;
-    m->v.h_hat = matrixNew(H, 1, addr); addr += H;
-    m->v.temp  = matrixNew(H, 1, addr);
+    m->v.f     = MatrixNew(H, 1, addr); addr += H;
+    m->v.h_hat = MatrixNew(H, 1, addr); addr += H;
+    m->v.temp  = MatrixNew(H, 1, addr);
 
     return m;
 
@@ -182,7 +183,7 @@ void ModelWrite(Model m, char *path)
 void ModelReset(Model m)
 {
     for (size_t l = 0; l < m->N; l++)
-        matrixZero(m->hs.h[l]);
+        MatrixZero(m->hs.h[l]);
 }
 
 void ModelForward(Model m, Token input, Matrix output)
@@ -190,7 +191,7 @@ void ModelForward(Model m, Token input, Matrix output)
     Variables *v = &m->v;
 
     // Embedding layer: x = W_e[input, :]^T
-    Matrix x = matrixView(m->p.e.W, (size_t)input);
+    Matrix x = MatrixView(m->p.e.W, (size_t)input);
 
     // Iterate over MGU layers
     for (size_t l = 0; l < m->N; l++)
@@ -199,40 +200,73 @@ void ModelForward(Model m, Token input, Matrix output)
         Matrix h_prev  = m->hs.h[l];
 
         // f = sigmoid(W_f * x + U_f * h_prev + b_f)
-        matrixMultiply(v->temp, hl.U_f, h_prev);
-        matrixMultiply(v->f, hl.W_f, x);
-        matrixAdd(v->f, v->f, v->temp);
-        matrixAdd(v->f, v->f, hl.b_f);
-        matrixApply(v->f, sigmoid);
+        MatrixMultiply(v->temp, hl.U_f, h_prev);
+        MatrixMultiply(v->f, hl.W_f, x);
+        MatrixAdd(v->f, v->f, v->temp);
+        MatrixAdd(v->f, v->f, hl.b_f);
+        MatrixApply(v->f, sigmoid);
 
         // h_hat = tanh(W_h * x + U_h * (f ⊙ h_prev) + b_h)
-        matrixHadamard(v->temp, v->f, h_prev);
-        matrixMultiply(v->temp, hl.U_h, v->temp);
-        matrixMultiply(v->h_hat, hl.W_h, x);
-        matrixAdd(v->h_hat, v->h_hat, v->temp);
-        matrixAdd(v->h_hat, v->h_hat, hl.b_h);
-        matrixApply(v->h_hat, rationalTanh);
+        MatrixHadamard(v->temp, v->f, h_prev);
+        MatrixMultiply(v->temp, hl.U_h, v->temp);
+        MatrixMultiply(v->h_hat, hl.W_h, x);
+        MatrixAdd(v->h_hat, v->h_hat, v->temp);
+        MatrixAdd(v->h_hat, v->h_hat, hl.b_h);
+        MatrixApply(v->h_hat, rationalTanh);
 
         // h_new = (1 - f) ⊙ h_prev + f ⊙ h_hat
         //       = h_prev - (f ⊙ h_prev) + (f ⊙ h_hat)
-        matrixHadamard(v->temp, v->f, h_prev);
-        matrixSubtract(h_prev, h_prev, v->temp);
-        matrixHadamard(v->temp, v->f, v->h_hat);
-        matrixAdd(h_prev, h_prev, v->temp);
+        MatrixHadamard(v->temp, v->f, h_prev);
+        MatrixSubtract(h_prev, h_prev, v->temp);
+        MatrixHadamard(v->temp, v->f, v->h_hat);
+        MatrixAdd(h_prev, h_prev, v->temp);
 
         // Next layer input is the previous layer output
         x = h_prev;
     }
 
     // Output layer: output = W_o * x + b_o
-    matrixMultiply(output, m->p.o.W, x);
-    matrixAdd(output, output, m->p.o.b);
+    MatrixMultiply(output, m->p.o.W, x);
+    MatrixAdd(output, output, m->p.o.b);
 }
 
-Token ModelSample(Model m, Matrix output)
+// Softmax sampling with temperature via inverse CDF
+Token ModelSample(Model m, Matrix output, float temperature)
 {
-    // TODO
-    return 0;
+    size_t V = m->V;
+
+    size_t argmax = 0;
+    Entry max = MatrixGet(output, 0, 0);
+    for (size_t i = 1; i < V; i++) {
+        Entry e = MatrixGet(output, i, 0);
+        if (e > max) {
+            max = e;
+            argmax = i;
+        }
+    }
+
+    if (!(temperature > 0.0f))
+        return (Token)argmax;
+
+    Entry sum = 0.0f;
+    for (size_t i = 0; i < V; i++) {
+        Entry e = MatrixGet(output, i, 0);
+        sum += expf((e - max) / temperature);
+    }
+    if (!(sum > 0.0f))
+        return (Token)argmax;
+
+    float r = randomFloat(0.0f, (float)sum);
+
+    Entry cdf = 0.0f;
+    for (size_t i = 0; i < V; i++) {
+        Entry e = MatrixGet(output, i, 0);
+        cdf += expf((e - max) / temperature);
+        if (r < cdf)
+            return (Token)i;
+    }
+
+    return (Token)(V - 1);
 }
 
 // Sigmoid function

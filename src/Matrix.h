@@ -7,51 +7,61 @@ typedef struct {
     size_t cols;
     Entry *entries;
 } Matrix;
-typedef float (*MatrixFunction)(Entry);
+typedef Entry (*MatrixFunction)(Entry);
 
 /*
  * Creates a matrix, requires already allocated memory for entries
  */
-Matrix matrixNew(size_t rows, size_t cols, Entry *entries);
+Matrix MatrixNew(size_t rows, size_t cols, Entry *entries);
 
 /*
  * out = A + B, assumes all parameters given are correct
  */
-void matrixAdd(Matrix out, Matrix A, Matrix B);
+void MatrixAdd(Matrix out, Matrix A, Matrix B);
 
 /*
  * out = A - B, assumes all parameters given are correct
  */
-void matrixSubtract(Matrix out, Matrix A, Matrix B);
+void MatrixSubtract(Matrix out, Matrix A, Matrix B);
 
 /*
  * out = A ⊙ B, assumes all parameters given are correct
  */
-void matrixHadamard(Matrix out, Matrix A, Matrix B);
+void MatrixHadamard(Matrix out, Matrix A, Matrix B);
 
 /*
  * out = A * B, assumes all parameters given are correct
  */
-void matrixMultiply(Matrix out, Matrix A, Matrix B);
+void MatrixMultiply(Matrix out, Matrix A, Matrix B);
 
 /*
  * Xavier initialize a matrix
  */
-void matrixXavier(Matrix A);
+void MatrixXavier(Matrix A);
 
 /*
  * Applies a single variable function to each element in the matrix
  */
-void matrixApply(Matrix A, MatrixFunction f);
+void MatrixApply(Matrix A, MatrixFunction f);
 
 /*
  * Sets all elements in the matrix to zero
  */
-void matrixZero(Matrix A);
+void MatrixZero(Matrix A);
 
 /* Returns the transpose of the given row in matrix A, note that it
  * shares memory with matrix A. Use with caution.
  */
-Matrix matrixView(Matrix A, size_t row);
+Matrix MatrixView(Matrix A, size_t row);
+
+/*
+ * Returns the entry at the given row and column.
+ */
+Entry MatrixGet(Matrix A, size_t row, size_t col);
+
+/*
+ * Sets the entry at the given row and column.
+ */
+void MatrixSet(Matrix A, size_t row, size_t col, Entry value);
 
 #endif
