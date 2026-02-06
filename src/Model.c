@@ -173,8 +173,17 @@ Model ModelRead(char *path)
     FILE *f = fopen(path, "rb");
     if (!f) {
         fprintf(stderr, "Failed to open file: %s\n", path);
-        return NULL;
+        return ModelNew(0, 0);
     }
+
+    fseek(f, 0, SEEK_END);
+    long fileSize = ftell(f);
+    long minSize = 2 * sizeof(size_t) + VOCABULARY_SIZE * sizeof(Entry);
+    if (fileSize < minSize) {
+        fclose(f);
+        return ModelNew(0, 0);
+    }
+    fseek(f, 0, SEEK_SET);
 
     size_t H, N;
     fread(&H, sizeof(size_t), 1, f);
