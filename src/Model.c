@@ -170,8 +170,19 @@ size_t ModelParameters(Model m)
 
 Model ModelRead(char *path)
 {
-    // TODO
-    return ModelNew(0, 0);
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "Failed to open file: %s\n", path);
+        return NULL;
+    }
+
+    size_t H, N;
+    fread(&H, sizeof(size_t), 1, f);
+    fread(&N, sizeof(size_t), 1, f);
+    Model m = ModelNew(H, N);
+    fread(m->p.entries, sizeof(Entry), ModelParameters(m), f);
+    fclose(f);
+    return m;
 }
 
 void ModelWrite(Model m, char *path)
@@ -182,8 +193,6 @@ void ModelWrite(Model m, char *path)
         return;
     }
 
-    fwrite(&m->V, sizeof(size_t), 1, f);
-    fwrite(&m->E, sizeof(size_t), 1, f);
     fwrite(&m->H, sizeof(size_t), 1, f);
     fwrite(&m->N, sizeof(size_t), 1, f);
     fwrite(m->p.entries, sizeof(Entry), ModelParameters(m), f);
