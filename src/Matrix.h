@@ -2,12 +2,12 @@
 #define MATRIX_H
 
 typedef float Entry;
+typedef Entry (*EntryFunction)(Entry);
 typedef struct {
     size_t rows;
     size_t cols;
     Entry *entries;
 } Matrix;
-typedef Entry (*MatrixFunction)(Entry);
 
 /*
  * Allocates a new matrix on the heap with all entries as 0
@@ -50,9 +50,9 @@ void MatrixMultiply(Matrix out, Matrix A, Matrix B);
 void MatrixXavier(Matrix A);
 
 /*
- * Applies a single variable function to each element in the matrix
+ * Applies a single variable function to each entry in the matrix
  */
-void MatrixApply(Matrix A, MatrixFunction f);
+void MatrixApply(Matrix A, EntryFunction f);
 
 /*
  * Sets all elements in the matrix to zero

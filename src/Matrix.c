@@ -2,8 +2,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 #include "Matrix.h"
+#include "ThreadPool.h"
 #include "utility.h"
+
+typedef struct {
+    Matrix out, A, B;
+} MatrixArguments;
+
+typedef struct {
+    Matrix A;
+    EntryFunction f;
+} EnryArguments;
+
+// Map functions that operate on a subset of entries [start, end)
+static void applySubset(void *arg, size_t start, size_t end);
+static void addSubset(void *arg, size_t start, size_t end);
+static void subtractSubset(void *arg, size_t start, size_t end);
+static void hadamardSubset(void *arg, size_t start, size_t end);
+static void multiplySubset(void *arg, size_t start, size_t end);
+
+/*
+ * Singleton pattern to initialize thread pool once then free on exit.
+ * Number of threads set to number of cores in CPU.
+ */
+static ThreadPool pool;
+static ThreadPool getPool(void);
+static void freePool(void);
 
 Matrix MatrixNew(size_t rows, size_t cols)
 {
@@ -32,52 +58,34 @@ Matrix MatrixView(size_t rows, size_t cols, Entry *entries)
     return m;
 }
 
-void MatrixApply(Matrix A, MatrixFunction f)
+void MatrixApply(Matrix A, EntryFunction f)
 {
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        A.entries[i] = f(A.entries[i]);
+    EnryArguments args = {A, f};
+    ThreadPoolMap(getPool(), applySubset, &args, A.rows * A.cols);
 }
 
 void MatrixAdd(Matrix out, Matrix A, Matrix B)
 {
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] + B.entries[i];
+    MatrixArguments args = {out, A, B};
+    ThreadPoolMap(getPool(), addSubset, &args, A.rows * A.cols);
 }
 
 void MatrixSubtract(Matrix out, Matrix A, Matrix B)
 {
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] - B.entries[i];
+    MatrixArguments args = {out, A, B};
+    ThreadPoolMap(getPool(), subtractSubset, &args, A.rows * A.cols);
 }
 
 void MatrixHadamard(Matrix out, Matrix A, Matrix B)
 {
-    size_t n = A.rows * A.cols;
-    for (size_t i = 0; i < n; i++)
-        out.entries[i] = A.entries[i] * B.entries[i];
+    MatrixArguments args = {out, A, B};
+    ThreadPoolMap(getPool(), hadamardSubset, &args, A.rows * A.cols);
 }
 
 void MatrixMultiply(Matrix out, Matrix A, Matrix B)
 {
-    for (size_t i = 0; i < A.rows; i++)
-    {
-        Entry *A_i = A.entries + i * A.cols;
-        Entry *C_i = out.entries + i * B.cols;
-
-        for (size_t k = 0; k < B.cols; k++)
-            C_i[k] = 0.0f;
-
-        for (size_t j = 0; j < A.cols; j++)
-        {
-            Entry a = A_i[j];
-            Entry *B_j = B.entries + j * B.cols;
-            for (size_t k = 0; k < B.cols; k++)
-                C_i[k] += a * B_j[k];
-        }
-    }
+    MatrixArguments args = {out, A, B};
+    ThreadPoolMap(getPool(), multiplySubset, &args, A.rows);
 }
 
 void MatrixXavier(Matrix A)
@@ -110,4 +118,67 @@ Entry MatrixGet(Matrix A, size_t row, size_t col)
 void MatrixSet(Matrix A, size_t row, size_t col, Entry value)
 {
     A.entries[row * A.cols + col] = value;
+}
+
+static void applySubset(void *arg, size_t start, size_t end)
+{
+    EnryArguments *args = arg;
+    for (size_t i = start; i < end; i++)
+        args->A.entries[i] = args->f(args->A.entries[i]);
+}
+
+static void addSubset(void *arg, size_t start, size_t end)
+{
+    MatrixArguments *args = arg;
+    for (size_t i = start; i < end; i++)
+        args->out.entries[i] = args->A.entries[i] + args->B.entries[i];
+}
+
+static void subtractSubset(void *arg, size_t start, size_t end)
+{
+    MatrixArguments *args = arg;
+    for (size_t i = start; i < end; i++)
+        args->out.entries[i] = args->A.entries[i] - args->B.entries[i];
+}
+
+static void hadamardSubset(void *arg, size_t start, size_t end)
+{
+    MatrixArguments *args = arg;
+    for (size_t i = start; i < end; i++)
+        args->out.entries[i] = args->A.entries[i] * args->B.entries[i];
+}
+
+static void multiplySubset(void *arg, size_t start, size_t end)
+{
+    MatrixArguments *args = arg;
+    for (size_t i = start; i < end; i++)
+    {
+        Entry *A_i = args->A.entries + i * args->A.cols;
+        Entry *C_i = args->out.entries + i * args->B.cols;
+
+        for (size_t k = 0; k < args->B.cols; k++)
+            C_i[k] = 0.0f;
+
+        for (size_t j = 0; j < args->A.cols; j++)
+        {
+            Entry a = A_i[j];
+            Entry *B_j = args->B.entries + j * args->B.cols;
+            for (size_t k = 0; k < args->B.cols; k++)
+                C_i[k] += a * B_j[k];
+        }
+    }
+}
+
+static void freePool(void)
+{
+    ThreadPoolFree(pool);
+}
+
+static ThreadPool getPool(void)
+{
+    if (!pool) {
+        pool = ThreadPoolNew(sysconf(_SC_NPROCESSORS_ONLN));
+        atexit(freePool);
+    }
+    return pool;
 }
