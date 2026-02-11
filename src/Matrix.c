@@ -23,10 +23,8 @@ static void subtractSubset(void *arg, size_t start, size_t end);
 static void hadamardSubset(void *arg, size_t start, size_t end);
 static void multiplySubset(void *arg, size_t start, size_t end);
 
-/*
- * Singleton pattern to initialize thread pool once then free on exit.
- * Number of threads set to number of cores in CPU.
- */
+// Singleton pattern to initialize thread pool once then free on exit.
+// Number of threads set to number of cores in CPU.
 static ThreadPool pool;
 static ThreadPool getPool(void);
 static void freePool(void);
