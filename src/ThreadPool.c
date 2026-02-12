@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "ThreadPool.h"
 
@@ -25,6 +26,85 @@ struct threadPool {
     int shutdown;
 };
 
+static ThreadPool newThreadPool(size_t n);
+static void freeThreadPool(void);
+static void *threadFn(void *arg);
+
+ThreadPool ThreadPoolGet(void)
+{
+    static ThreadPool pool;
+    if (!pool) {
+        pool = newThreadPool(sysconf(_SC_NPROCESSORS_ONLN));
+        atexit(freeThreadPool);
+    }
+    return pool;
+}
+
+void ThreadPoolMap(ThreadPool pool, MapFunction f, void *arg, size_t total)
+{
+    pthread_mutex_lock(&pool->mutex);
+    pool->f = f;
+    pool->mapArgs = arg;
+    pool->mapTotal = total;
+    pool->subsetsDone = 0;
+    pool->mapId++;
+    pthread_cond_broadcast(&pool->mapReady);
+
+    while (pool->subsetsDone < pool->numThreads)
+        pthread_cond_wait(&pool->mapDone, &pool->mutex);
+    pthread_mutex_unlock(&pool->mutex);
+}
+
+static ThreadPool newThreadPool(size_t n)
+{
+    ThreadPool pool = malloc(sizeof(struct threadPool));
+    if (!pool) {
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    pool->numThreads = n;
+    pool->mapId = 0;
+    pool->shutdown = 0;
+
+    pthread_mutex_init(&pool->mutex, NULL);
+    pthread_cond_init(&pool->mapReady, NULL);
+    pthread_cond_init(&pool->mapDone, NULL);
+
+    pool->threads = malloc(n * sizeof(pthread_t));
+    pool->threadArgs = malloc(n * sizeof(ThreadArguments));
+    if (!pool->threads || !pool->threadArgs) {
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        pool->threadArgs[i] = (ThreadArguments){pool, i};
+        pthread_create(&pool->threads[i], NULL, threadFn, &pool->threadArgs[i]);
+    }
+
+    return pool;
+}
+
+static void freeThreadPool(void)
+{
+    ThreadPool pool = ThreadPoolGet();
+
+    pthread_mutex_lock(&pool->mutex);
+    pool->shutdown = 1;
+    pthread_cond_broadcast(&pool->mapReady);
+    pthread_mutex_unlock(&pool->mutex);
+
+    for (size_t i = 0; i < pool->numThreads; i++)
+        pthread_join(pool->threads[i], NULL);
+
+    pthread_mutex_destroy(&pool->mutex);
+    pthread_cond_destroy(&pool->mapReady);
+    pthread_cond_destroy(&pool->mapDone);
+    free(pool->threadArgs);
+    free(pool->threads);
+    free(pool);
+}
 
 static void *threadFn(void *arg)
 {
@@ -64,68 +144,4 @@ static void *threadFn(void *arg)
             pthread_cond_signal(&pool->mapDone);
         pthread_mutex_unlock(&pool->mutex);
     }
-}
-
-ThreadPool ThreadPoolNew(size_t n)
-{
-    ThreadPool pool = malloc(sizeof(struct threadPool));
-    if (!pool) {
-        fprintf(stderr, "Insufficient memory!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    pool->numThreads = n;
-    pool->mapId = 0;
-    pool->shutdown = 0;
-
-    pthread_mutex_init(&pool->mutex, NULL);
-    pthread_cond_init(&pool->mapReady, NULL);
-    pthread_cond_init(&pool->mapDone, NULL);
-
-    pool->threads = malloc(n * sizeof(pthread_t));
-    pool->threadArgs = malloc(n * sizeof(ThreadArguments));
-    if (!pool->threads || !pool->threadArgs) {
-        fprintf(stderr, "Insufficient memory!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (size_t i = 0; i < n; i++) {
-        pool->threadArgs[i] = (ThreadArguments){pool, i};
-        pthread_create(&pool->threads[i], NULL, threadFn, &pool->threadArgs[i]);
-    }
-
-    return pool;
-}
-
-void ThreadPoolMap(ThreadPool pool, MapFunction f, void *arg, size_t total)
-{
-    pthread_mutex_lock(&pool->mutex);
-    pool->f = f;
-    pool->mapArgs = arg;
-    pool->mapTotal = total;
-    pool->subsetsDone = 0;
-    pool->mapId++;
-    pthread_cond_broadcast(&pool->mapReady);
-
-    while (pool->subsetsDone < pool->numThreads)
-        pthread_cond_wait(&pool->mapDone, &pool->mutex);
-    pthread_mutex_unlock(&pool->mutex);
-}
-
-void ThreadPoolFree(ThreadPool pool)
-{
-    pthread_mutex_lock(&pool->mutex);
-    pool->shutdown = 1;
-    pthread_cond_broadcast(&pool->mapReady);
-    pthread_mutex_unlock(&pool->mutex);
-
-    for (size_t i = 0; i < pool->numThreads; i++)
-        pthread_join(pool->threads[i], NULL);
-
-    pthread_mutex_destroy(&pool->mutex);
-    pthread_cond_destroy(&pool->mapReady);
-    pthread_cond_destroy(&pool->mapDone);
-    free(pool->threadArgs);
-    free(pool->threads);
-    free(pool);
 }
