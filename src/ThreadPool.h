@@ -9,10 +9,10 @@ typedef void (*MapFunction)(void *arg, size_t start, size_t end);
  * Number of threads set to number of cores in CPU.
  */
 ThreadPool ThreadPoolGet(void);
+
 /*
  * Divides total items into subsets, maps f across total threads and blocks until complete
  */
 void ThreadPoolMap(ThreadPool pool, MapFunction f, void *arg, size_t total);
-
 
 #endif
