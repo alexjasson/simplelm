@@ -86,6 +86,11 @@ void MatrixMultiply(Matrix out, Matrix A, Matrix B)
     ThreadPoolMap(getPool(), multiplySubset, &args, A.rows);
 }
 
+Matrix MatrixTranspose(Matrix A)
+{
+    return MatrixView(A.cols, A.rows, A.entries);
+}
+
 void MatrixXavier(Matrix A)
 {
     size_t size = A.rows * A.cols;
@@ -94,18 +99,19 @@ void MatrixXavier(Matrix A)
         A.entries[i] = (Entry)randomFloat(-bound, bound);
 }
 
+void MatrixCopy(Matrix out, Matrix in)
+{
+    memcpy(out.entries, in.entries, in.rows * in.cols * sizeof(Entry));
+}
+
 void MatrixZero(Matrix A)
 {
     memset(A.entries, 0, A.rows * A.cols * sizeof(Entry));
 }
 
-Matrix MatrixSlice(Matrix A, size_t row)
+Matrix MatrixRow(Matrix A, size_t row)
 {
-    Matrix m;
-    m.rows = A.cols;
-    m.cols = 1;
-    m.entries = A.entries + row * A.cols;
-    return m;
+    return MatrixView(1, A.cols, A.entries + row * A.cols);
 }
 
 Entry MatrixGet(Matrix A, size_t row, size_t col)

@@ -44,9 +44,17 @@ void ModelReset(Model m);
 
 /*
  * Given an input token, update the output vector [V x 1] with the result 
- * of a forward pass through the model.
+ * of a forward pass through the model. Accumulates variables to be used for
+ * a backward pass.
  */
 void ModelForward(Model m, Token input, Matrix output);
+
+/*
+ * Given the input token and output vector from a forward pass, accumulate
+ * gradients (dLoss/dtheta) and return the loss computed from cross-entropy loss
+ * on the output vector and target token.
+ */
+float ModelBackward(Model m, Token input, Token target, Matrix output);
 
 /*
  * Given the output of the model, choose a token and return it.
