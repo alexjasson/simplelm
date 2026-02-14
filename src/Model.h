@@ -7,12 +7,12 @@
 #define VOCABULARY_SIZE 256 // All ASCII characters
 
 typedef struct model *Model;
-typedef uint8_t Token; 	    // Input of the model
+typedef uint8_t Token; // Input of the model
 
 /*
  * Allocates memory for a model on the heap.
  */
-Model ModelNew(int hiddenSize, int numLayers);
+Model ModelNew(int hiddenSize, int numLayers, int seqLength);
 
 /*
  * Frees the model from memory.
@@ -43,18 +43,18 @@ size_t ModelParameters(Model m);
 void ModelReset(Model m);
 
 /*
- * Given an input token, update the output vector [V x 1] with the result 
- * of a forward pass through the model. Accumulates variables to be used for
- * a backward pass.
+ * Given an array of T input tokens, update the output vectors [V x 1] with the
+ * result of a forward pass through the model. Accumulates variables at each
+ * timestep and advances the persistent hidden state.
  */
-void ModelForward(Model m, Token input, Matrix output);
+Matrix ModelForward(Model m, Token *input);
 
 /*
- * Given the input token and output vector from a forward pass, accumulate
- * gradients (dLoss/dtheta) and return the loss computed from cross-entropy loss
- * on the output vector and target token.
+ * Given the arrays of T input/target tokens, accumulate gradients (dLoss/dtheta)
+ * and return the total cross-entropy loss over T timesteps. Must be called after
+ * ModelForward.
  */
-float ModelBackward(Model m, Token input, Token target, Matrix output);
+float ModelBackward(Model m, Token *input, Token *target);
 
 /*
  * Given the output of the model, choose a token and return it.

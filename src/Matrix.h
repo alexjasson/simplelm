@@ -10,7 +10,9 @@ typedef struct {
 } Matrix;
 
 /*
- * Allocates a new matrix on the heap with all entries as 0
+ * Allocates a new matrix on the heap with all entries as 0.
+ * To avoid memory fragmentation, don't call this multiple times. 
+ * Instead, allocate memory for entries separately and use MatrixView.
  */
 Matrix MatrixNew(size_t rows, size_t cols);
 

@@ -20,29 +20,30 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    float temperature = atof(argv[1]);
     Model m = ModelRead(MODEL);
-    Matrix output = MatrixNew(VOCABULARY_SIZE, 1);
+    float temperature = atof(argv[1]);
     char input[MAX_INPUT];
 
     while (1) {
         printf("You: ");
         if (!fgets(input, MAX_INPUT, stdin)) break;
 
-        for (size_t i = 0; i < strlen(input); i++)
-            ModelForward(m, (Token)input[i], output);
+        Matrix output;
+        for (size_t i = 0; i < strlen(input); i++) {
+            Token t = (Token)input[i];
+            output = ModelForward(m, &t);
+        }
 
         printf("Model: ");
         Token t;
         while ((t = ModelSample(m, output, temperature)) != '\n') {
             putchar(t);
             fflush(stdout);
-            ModelForward(m, t, output);
+            output = ModelForward(m, &t);
         }
         printf("\n");
     }
 
-    MatrixFree(output);
     ModelFree(m);
     return 0;
 }
