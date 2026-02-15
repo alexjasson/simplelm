@@ -57,6 +57,12 @@ Matrix ModelForward(Model m, Token *input);
 float ModelBackward(Model m, Token *input, Token *target);
 
 /*
+ * Adam optimizer with gradient clipping. Must be called after ModelBackward.
+ * Gradients are set to 0 once used.
+ */
+void ModelAdam(Model m, float learningRate);
+
+/*
  * Given the output of the model, choose a token and return it.
  */
 Token ModelSample(Model m, Matrix output, float temperature);

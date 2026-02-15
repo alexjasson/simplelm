@@ -5,11 +5,16 @@
 #include "Model.h"
 #include "utility.h"
 
+// Adam optimizer hyperparameters
+#define BETA1    0.9f
+#define BETA2    0.999f
+#define EPSILON  1e-8f
+#define CLIP     1.0f
+
 /*
  * We're using a minimal gated unit (MGU) with an embedding layer and
  * letting the embedding layer size be the same as the hidden layer size.
- * Please see: https://en.wikipedia.org/wiki/Gated_recurrent_unit and
- * https://arxiv.org/pdf/1603.09420
+ * Please see: https://arxiv.org/pdf/1603.09420
  */
 
 typedef struct {
@@ -52,6 +57,9 @@ typedef struct {
     Matrix tempM;    // Holds temporary matrix values [max(V,H) x H]
     Matrix *dh;      // N gradient vectors dL/dh [H x 1]
     Matrix *h_start; // N pre-forward hidden state vectors [H x 1]
+    float *m;        // Adam first moment estimates
+    float *v;        // Adam second moment estimates
+    int t;           // Adam timestep
 } Variables;
 
 struct model
@@ -180,6 +188,12 @@ Model ModelNew(int hiddenSize, int numLayers, int seqLength)
         m->v.h_start[i] = MatrixView(H, 1, addr); addr += H;
     }
 
+    // Allocate Adam optimizer state
+    m->v.m = calloc(ModelParameters(m), sizeof(float));
+    m->v.v = calloc(ModelParameters(m), sizeof(float));
+    m->v.t = 0;
+    if (!m->v.m || !m->v.v) goto error;
+
     return m;
 
 error:
@@ -200,6 +214,8 @@ void ModelFree(Model m)
     free(m->v.y);
     free(m->v.dh);
     free(m->v.h_start);
+    free(m->v.m);
+    free(m->v.v);
     free(m->hs.h);
     free(m->hs.entries);
     free(m->p.h);
@@ -434,6 +450,38 @@ float ModelBackward(Model m, Token *input, Token *target)
     }
 
     return loss;
+}
+
+// Adam optimizer with gradient clipping
+void ModelAdam(Model m, float learningRate)
+{
+    size_t n = ModelParameters(m);
+    float *p = m->p.entries;
+    float *dp = m->v.dp.entries;
+
+    float norm = 0.0f;
+    for (size_t i = 0; i < n; i++)
+        norm += dp[i] * dp[i];
+    norm = sqrtf(norm);
+    if (!isfinite(norm)) {
+        memset(dp, 0, n * sizeof(float));
+        return;
+    }
+    float scale = (norm > CLIP) ? CLIP / norm : 1.0f;
+
+    // Adam update
+    m->v.t++;
+    float b1 = 1.0f - powf(BETA1, m->v.t);
+    float b2 = 1.0f - powf(BETA2, m->v.t);
+    for (size_t i = 0; i < n; i++) {
+        float g = dp[i] * scale;
+        m->v.m[i] = BETA1 * m->v.m[i] + (1.0f - BETA1) * g;
+        m->v.v[i] = BETA2 * m->v.v[i] + (1.0f - BETA2) * g * g;
+        float m_hat = m->v.m[i] / b1;
+        float v_hat = m->v.v[i] / b2;
+        p[i] -= learningRate * m_hat / (sqrtf(v_hat) + EPSILON);
+        dp[i] = 0.0f;
+    }
 }
 
 // Softmax sampling via inverse CDF
