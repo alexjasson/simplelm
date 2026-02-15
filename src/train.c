@@ -9,7 +9,7 @@
 #include "utility.h"
 
 #define MODEL "data/model.out"
-#define DATA  "data/tinyShakespeare.in"
+#define DATA  "data/alphabet.in"
 #define WRITE 1000
 #define LOG   100
 
