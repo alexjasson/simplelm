@@ -13,7 +13,6 @@
 
 int main(int argc, char **argv)
 {
-
     // Check arguments
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <temperature>\n", argv[0]);

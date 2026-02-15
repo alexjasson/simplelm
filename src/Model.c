@@ -6,10 +6,11 @@
 #include "utility.h"
 
 // Adam optimizer hyperparameters
-#define BETA1    0.9f
-#define BETA2    0.999f
-#define EPSILON  1e-8f
-#define CLIP     1.0f
+#define LEARNING_RATE 1e-3f
+#define BETA1         0.9f
+#define BETA2         0.999f
+#define EPSILON       1e-8f
+#define CLIP          1.0f
 
 /*
  * We're using a minimal gated unit (MGU) with an embedding layer and
@@ -78,7 +79,7 @@ static Entry dsigmoid(Entry x);
 static Entry rationalTanh(Entry x);
 static Entry drationalTanh(Entry x);
 
-Model ModelNew(int hiddenSize, int numLayers, int seqLength)
+Model ModelNew(size_t hiddenSize, size_t numLayers, size_t seqLength)
 {
     Model m = calloc(1, sizeof(struct model));
     if (!m) return NULL;
@@ -271,12 +272,6 @@ void ModelWrite(Model m, char *path)
     fclose(f);
 }
 
-void ModelReset(Model m)
-{
-    for (size_t l = 0; l < m->N; l++)
-        MatrixZero(m->hs.h[l]);
-}
-
 // Accumulates the following variables for backward pass: {x, f, h_hat, z_h, h, y}
 Matrix ModelForward(Model m, Token *input)
 {
@@ -449,11 +444,11 @@ float ModelBackward(Model m, Token *input, Token *target)
         MatrixAdd(dW_e, dW_e, tempH1);
     }
 
-    return loss;
+    return loss / T;
 }
 
 // Adam optimizer with gradient clipping
-void ModelAdam(Model m, float learningRate)
+void ModelAdam(Model m)
 {
     size_t n = ModelParameters(m);
     float *p = m->p.entries;
@@ -479,7 +474,7 @@ void ModelAdam(Model m, float learningRate)
         m->v.v[i] = BETA2 * m->v.v[i] + (1.0f - BETA2) * g * g;
         float m_hat = m->v.m[i] / b1;
         float v_hat = m->v.v[i] / b2;
-        p[i] -= learningRate * m_hat / (sqrtf(v_hat) + EPSILON);
+        p[i] -= LEARNING_RATE * m_hat / (sqrtf(v_hat) + EPSILON);
         dp[i] = 0.0f;
     }
 }
