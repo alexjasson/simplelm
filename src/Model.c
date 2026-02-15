@@ -448,7 +448,7 @@ float ModelBackward(Model m, Token *input, Token *target)
 }
 
 // Adam optimizer with gradient clipping
-void ModelAdam(Model m)
+void ModelOptimizer(Model m)
 {
     size_t n = ModelParameters(m);
     float *p = m->p.entries;

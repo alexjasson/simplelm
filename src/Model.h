@@ -55,7 +55,7 @@ float ModelBackward(Model m, Token *input, Token *target);
  * Adam optimizer with gradient clipping. Must be called after ModelBackward.
  * Gradients are set to 0 once used.
  */
-void ModelAdam(Model m);
+void ModelOptimizer(Model m);
 
 /*
  * Given the output of the model, choose a token and return it.

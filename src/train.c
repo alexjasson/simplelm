@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
         ModelForward(m, input);
         float loss = ModelBackward(m, input, target);
-        ModelAdam(m);
+        ModelOptimizer(m);
 
         offset += seqLength;
         if (step % LOG == 0)
