@@ -7,12 +7,12 @@
 #define VOCABULARY_SIZE 256 // All ASCII characters
 
 typedef struct model *Model;
-typedef uint8_t Token; 	    // Input of the model
+typedef uint8_t Token; // Input of the model
 
 /*
  * Allocates memory for a model on the heap.
  */
-Model ModelNew(int hiddenSize, int numLayers);
+Model ModelNew(size_t hiddenSize, size_t numLayers, size_t seqLength);
 
 /*
  * Frees the model from memory.
@@ -38,15 +38,24 @@ void ModelWrite(Model m, char *path);
 size_t ModelParameters(Model m);
 
 /*
- * Resets the models memory (hidden state)
+ * Given an array of T input tokens, update the output vectors [V x 1] with the
+ * result of a forward pass through the model. Accumulates variables at each
+ * timestep and advances the persistent hidden state.
  */
-void ModelReset(Model m);
+Matrix ModelForward(Model m, Token *input);
 
 /*
- * Given an input token, update the output vector [V x 1] with the result 
- * of a forward pass through the model.
+ * Given the arrays of T input/target tokens, accumulate gradients (dLoss/dtheta)
+ * and return the average cross-entropy loss over T timesteps. Must be called after
+ * ModelForward.
  */
-void ModelForward(Model m, Token input, Matrix output);
+float ModelBackward(Model m, Token *input, Token *target);
+
+/*
+ * Adam optimizer with gradient clipping. Must be called after ModelBackward.
+ * Gradients are set to 0 once used.
+ */
+void ModelOptimizer(Model m);
 
 /*
  * Given the output of the model, choose a token and return it.

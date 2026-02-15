@@ -5,18 +5,14 @@ typedef struct threadPool *ThreadPool;
 typedef void (*MapFunction)(void *arg, size_t start, size_t end);
 
 /*
- * Creates a thread pool with the given number of worker threads.
+ * Singleton pattern to initialize thread pool once then free on exit.
+ * Number of threads set to number of cores in CPU.
  */
-ThreadPool ThreadPoolNew(size_t numThreads);
+ThreadPool ThreadPoolGet(void);
 
 /*
- * Divides total items into subsets, maps f across numThreads and blocks until complete
+ * Divides total items into subsets, maps f across total threads and blocks until complete
  */
 void ThreadPoolMap(ThreadPool pool, MapFunction f, void *arg, size_t total);
-
-/*
- * Destroys the thread pool and joins all worker threads.
- */
-void ThreadPoolFree(ThreadPool pool);
 
 #endif

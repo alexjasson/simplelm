@@ -7,10 +7,15 @@ endif
 
 CFLAGS = -Wall -Wextra -Werror -pedantic -Ofast -march=native -flto
 
+all: chat train
+
 chat: src/chat.c src/Model.c src/Model.h src/Matrix.c src/Matrix.h src/utility.c src/utility.h src/ThreadPool.c src/ThreadPool.h
 	$(CC) $(CFLAGS) -o chat src/chat.c src/Model.c src/Matrix.c src/utility.c src/ThreadPool.c -lm -lpthread
 
-clean:
-	rm -f chat
+train: src/train.c src/Model.c src/Model.h src/Matrix.c src/Matrix.h src/utility.c src/utility.h src/ThreadPool.c src/ThreadPool.h
+	$(CC) $(CFLAGS) -o train src/train.c src/Model.c src/Matrix.c src/utility.c src/ThreadPool.c -lm -lpthread
 
-.PHONY: clean
+clean:
+	rm -f chat train
+
+.PHONY: all clean
