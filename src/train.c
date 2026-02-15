@@ -58,6 +58,8 @@ int main(int argc, char **argv)
         }
     }
 
+    ModelWrite(m, MODEL);
+    printf("Model saved to %s\n", MODEL);
     ModelFree(m);
     free(data);
     return 0;
