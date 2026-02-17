@@ -43,4 +43,4 @@ make
 ./chat 0.5
 ```
 
-![](<images/perft(7).png>)
+![](<images/chat.png>)
