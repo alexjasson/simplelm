@@ -14,14 +14,15 @@ int main(int argc, char **argv)
         fprintf(stderr, "Usage: %s <hiddenSize> <numLayers> <seqLength>\n", argv[0]);
         return 1;
     }
-    if (fileSize(DATA) <= atoi(argv[3])) {
-        fprintf(stderr, "Training data must be larger than sequence length\n", argv[0]);
-        return 1;
-    }
-
     size_t hiddenSize = atoi(argv[1]);
     size_t numLayers  = atoi(argv[2]);
     size_t seqLength  = atoi(argv[3]);
+    
+    size_t dataSize   = fileSize(DATA);
+    if (fileSize(DATA) <= dataSize) {
+        fprintf(stderr, "Training data must be larger than sequence length\n");
+        return 1;
+    }
     Token *data = readFile(DATA);
     Model m = ModelNew(hiddenSize, numLayers, seqLength);
     printf("Training model with %zu parameters\n", ModelParameters(m));
