@@ -41,7 +41,7 @@ size_t fileSize(char *path)
     return size;
 }
 
-void readFile(char *path, void *data)
+void *readFile(char *path)
 {
     size_t length = fileSize(path);
     FILE *f = fopen(path, "rb");
@@ -49,6 +49,12 @@ void readFile(char *path, void *data)
         fprintf(stderr, "Failed to open file: %s\n", path);
         exit(EXIT_FAILURE);
     }
+    void *data = malloc(length);
+    if (!data) {
+        fprintf(stderr, "Insufficient memory!\n");
+        exit(EXIT_FAILURE);
+    }
     fread(data, 1, length, f);
     fclose(f);
+    return data;
 }

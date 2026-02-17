@@ -1,8 +1,3 @@
-/*
- * SimpleLM
- * © 2026 Alex Jasson
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +32,6 @@ int main(int argc, char **argv)
         Token t;
         while ((t = ModelSample(m, output, temperature)) != '\n') {
             putchar(t);
-            fflush(stdout);
             output = ModelForward(m, &t);
         }
         printf("\n");

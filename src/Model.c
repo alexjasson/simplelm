@@ -41,7 +41,7 @@ typedef struct {
 } Parameters;
 
 typedef struct {
-    Entry *entries;  // Block of memory for vectors
+    Entry *entries;  // Block of memory for hidden state entries
     Matrix *h;       // N persistent hidden state vectors [H x 1]
 } HiddenState;
 
@@ -157,18 +157,17 @@ Model ModelNew(size_t hiddenSize, size_t numLayers, size_t seqLength)
     }
 
     // Allocate variables and assign memory addresses
-    m->v.x       = calloc(T * N, sizeof(Matrix));
-    m->v.f       = calloc(T * N, sizeof(Matrix));
-    m->v.h_hat   = calloc(T * N, sizeof(Matrix));
-    m->v.z_h     = calloc(T * N, sizeof(Matrix));
-    m->v.h       = calloc(T * N, sizeof(Matrix));
-    m->v.y       = calloc(T, sizeof(Matrix));
-    m->v.dh      = calloc(N, sizeof(Matrix));
-    m->v.h_start = calloc(N, sizeof(Matrix));
+    m->v.x = calloc(5 * T * N + T + 2 * N, sizeof(Matrix));
     size_t S = V > H ? V : H;
     m->v.entries = calloc(5 * T * N * H + T * V + 2 * N * H + S * H + 3 * H, sizeof(Entry));
-    if (!m->v.entries || !m->v.f || !m->v.h_hat || !m->v.x
-        || !m->v.z_h || !m->v.h || !m->v.y || !m->v.dh || !m->v.h_start) goto error;
+    if (!m->v.x || !m->v.entries) goto error;
+    m->v.f       = m->v.x + T * N;
+    m->v.h_hat   = m->v.f + T * N;
+    m->v.z_h     = m->v.h_hat + T * N;
+    m->v.h       = m->v.z_h + T * N;
+    m->v.y       = m->v.h + T * N;
+    m->v.dh      = m->v.y + T;
+    m->v.h_start = m->v.dh + N;
     addr = m->v.entries;
     for (size_t i = 0; i < T * N; i++) {
         m->v.x[i]      = MatrixView(H, 1, addr); addr += H;
@@ -208,13 +207,6 @@ void ModelFree(Model m)
     if (!m) return;
     free(m->v.entries);
     free(m->v.x);
-    free(m->v.f);
-    free(m->v.h_hat);
-    free(m->v.z_h);
-    free(m->v.h);
-    free(m->v.y);
-    free(m->v.dh);
-    free(m->v.h_start);
     free(m->v.m);
     free(m->v.v);
     free(m->hs.h);
@@ -518,7 +510,7 @@ static Entry dsigmoid(Entry x)
     return x * (1.0f - x);
 }
 
-// Rational tanh approximation, valid for x in [-3, 3]
+// Tanh approximation, valid for x in [-3, 3]
 static Entry rationalTanh(Entry x) {
     if (x < -3.0f) return -1.0f;
     if (x > 3.0f) return 1.0f;
@@ -526,8 +518,8 @@ static Entry rationalTanh(Entry x) {
     return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
-// Rational tanh derivative, f(x) = x(27 + x^2)/(27 + 9x^2)
-//                           f'(x) = (x^2 - 9)^2 / 9(x^2 + 3)^2
+// Tanh derivative approximation, f(x) = x(27 + x^2)/(27 + 9x^2)
+//                                f'(x) = (x^2 - 9)^2 / 9(x^2 + 3)^2
 static Entry drationalTanh(Entry x) {
     if (x <= -3.0f || x >= 3.0f) return 0.0f;
     Entry x2 = x * x;

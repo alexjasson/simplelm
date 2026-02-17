@@ -12,8 +12,8 @@ float randomFloat(float lower, float upper);
 size_t fileSize(char *path);
 
 /*
- * Reads the contents of a file into the given data array
+ * Reads the contents of a file into newly allocated memory
  */
-void readFile(char *path, void *data);
+void *readFile(char *path);
 
 #endif
