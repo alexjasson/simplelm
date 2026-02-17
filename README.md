@@ -1,5 +1,5 @@
 # simplelm
-This is a basic character level RNN with MGU cells (https://arxiv.org/pdf/1603.09420).
+This is a basic character level RNN with MGU cells (https://arxiv.org/pdf/1603.09420). You can train it to learn basic grammar and sentence structure on an average CPU in 5-10 minutes.
 
 
 ## Compilation
