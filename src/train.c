@@ -6,6 +6,7 @@
 #define MODEL "data/model.out"
 #define DATA  "data/dialogue.in"
 #define LOG   100
+#define SAVE  1000
 
 int main(int argc, char **argv)
 {
@@ -38,7 +39,12 @@ int main(int argc, char **argv)
         ModelOptimizer(m);
 
         offset += seqLength;
-        if (step % LOG == 0) printf("Step %zu: loss %.4f\n", step, loss);
+        if (step % LOG == 0)
+            printf("Step %zu: loss %.4f\n", step, loss);
+        if (step % SAVE == 0) {
+            ModelWrite(m, MODEL);
+            printf("Model saved to %s\n", MODEL);
+        }
     }
 
     ModelWrite(m, MODEL);
