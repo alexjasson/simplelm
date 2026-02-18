@@ -18,8 +18,7 @@ int main(int argc, char **argv)
     size_t numLayers  = atoi(argv[2]);
     size_t seqLength  = atoi(argv[3]);
     
-    size_t dataSize   = fileSize(DATA);
-    if (fileSize(DATA) <= dataSize) {
+    if (fileSize(DATA) <= seqLength) {
         fprintf(stderr, "Training data must be larger than sequence length\n");
         return 1;
     }
